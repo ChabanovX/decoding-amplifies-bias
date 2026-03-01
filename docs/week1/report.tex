@@ -20,6 +20,7 @@
 \makeatother
 
 \title{Week 1 Report: Greedy GPT-2 Generation Pipeline}
+
 \author{Ivan Chabanov \\ Alexander Michailov}
 \date{March 1, 2026}
 
@@ -27,14 +28,21 @@
 \maketitle
 
 \begin{abstract}
-This report documents the Week 1 deliverables for the proposal-locked study
-\textit{Decoding Amplifies Bias}. Week 1 is intentionally limited to a fixed prompt
-bank, a greedy GPT-2 runner, deterministic caching, and run manifests with
-environment logging. No regard scoring or bias-gap claims are made here. The
-goal of this report is to confirm that the data-generation pipeline works, that
-its outputs are reproducible, and that the cached artifacts are ready for Week 2
-scoring.
+    This report documents the Week 1 deliverables for the proposal-locked study
+    \textit{Decoding Amplifies Bias}. Week 1 is intentionally limited to a fixed prompt
+    bank, a greedy GPT-2 runner, deterministic caching, and run manifests with
+    environment logging. No regard scoring or bias-gap claims are made here. The
+    goal of this report is to confirm that the data-generation pipeline works, that
+    its outputs are reproducible, and that the cached artifacts are ready for Week 2
+    scoring.
 \end{abstract}
+
+\begin{center}
+\small
+\url{https://github.com/ChabanovX/decoding-amplifies-bias}
+\end{center}
+
+\vspace{8px}
 
 \section{Scope and Setup}
 Week 1 implements only the greedy baseline. The prompt bank lives at
