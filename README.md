@@ -2,16 +2,7 @@
 
 Proposal-locked implementation of the study in [REQUIREMENTS.md](REQUIREMENTS.md).
 
-## Week 1 scope
-
-Week 1 implements only:
-
-- a fixed, versioned prompt bank
-- a GPT-2 small greedy generation runner
-- deterministic caching for generation artifacts
-- run manifests with config and environment logging
-
-Scoring, masking, and decoding sweeps are intentionally deferred to later weeks.
+See week1 report [here](docs/week1/report.pdf)
 
 ## Prompt bank
 
