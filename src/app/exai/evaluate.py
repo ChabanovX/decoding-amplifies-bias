@@ -19,6 +19,16 @@ from .splits import prepare_regard_dataset
 from .utils import file_digest, utc_now_iso, write_json
 
 
+def _checkpoint_reference_digest(checkpoint_path: Path) -> str:
+    for candidate_name in ("training_metrics.json", "training_manifest.json", "config.json"):
+        candidate_path = checkpoint_path / candidate_name
+        if candidate_path.exists():
+            return file_digest(candidate_path)
+
+    fallback = sorted(path.name for path in checkpoint_path.glob("*") if path.is_file())
+    return str(hash(tuple(fallback)))
+
+
 def evaluate_exai_classifier(
     *,
     data_config: ExAIDataConfig,
@@ -45,11 +55,7 @@ def evaluate_exai_classifier(
             )
         ).benchmark_path
 
-    checkpoint_digest = (
-        file_digest(eval_config.checkpoint_path / "training_metrics.json")
-        if (eval_config.checkpoint_path / "training_metrics.json").exists()
-        else file_digest(eval_config.checkpoint_path / "training_manifest.json")
-    )
+    checkpoint_digest = _checkpoint_reference_digest(eval_config.checkpoint_path)
     eval_key = checkpoint_digest[:20]
     test_metrics_path = paths.eval_dir / f"eval_{eval_key}_test_metrics.json"
     benchmark_metrics_path = paths.eval_dir / f"eval_{eval_key}_benchmark_metrics.json"
