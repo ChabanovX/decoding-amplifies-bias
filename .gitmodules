@@ -1,0 +1,3 @@
+[submodule "related_projects/ex-ai"]
+	path = related_projects/ex-ai
+	url = https://github.com/ChabanovX/exai-project.git
