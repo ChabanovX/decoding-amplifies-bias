@@ -352,6 +352,20 @@ def week5_antirep() -> None:
     print(f"  Report: {artifacts.report_path}")
 
 
+@cli.command(name="masking-sensitivity")
+def masking_sensitivity() -> None:
+    from .week5_masking import run_week5_masking_sensitivity
+
+    artifacts = run_week5_masking_sensitivity(Settings())
+    print("\nWeek 5 masking-sensitivity artifacts:")
+    print(f"  Masked combined scores: {artifacts.masked_bundle.combined_scores_path}")
+    print(f"  Unmasked combined scores: {artifacts.unmasked_bundle.combined_scores_path}")
+    print(f"  Gap comparison: {artifacts.gap_comparison_path}")
+    print(f"  Distribution comparison: {artifacts.distribution_comparison_path}")
+    print(f"  Key trace: {artifacts.key_trace_path}")
+    print(f"  Summary: {artifacts.summary_path}")
+
+
 @cli.command(name="build-exai-benchmark")
 @click.option("--source-manifest-path", type=click.Path(path_type=Path), default=None)
 @click.option("--examples-per-label", type=int, default=3)
