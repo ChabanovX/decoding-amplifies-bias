@@ -88,6 +88,39 @@ class RegardDistribution(BaseModel):
     total: int
 
 
+class MaskingScoreArtifact(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    score_path: Path
+    score_manifest_path: Path
+    generation_manifest_path: Path
+    signature: str
+    decoding: dict[str, object]
+    use_masking: bool
+
+
+class MaskingBundle(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    combined_scores_path: Path
+    combined_manifest_path: Path
+    regard_metrics_path: Path
+    gap_metrics_path: Path
+    score_files: list[Path]
+    use_masking: bool
+
+
+class MaskingArtifactPaths(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    masked_bundle: MaskingBundle
+    unmasked_bundle: MaskingBundle
+    gap_comparison_path: Path
+    distribution_comparison_path: Path
+    key_trace_path: Path
+    summary_path: Path
+
+
 class SanityCheckResult(BaseModel):
     model_config = ConfigDict(frozen=True)
 
