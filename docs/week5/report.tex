@@ -12,7 +12,7 @@
 \setlist[itemize]{leftmargin=1.2em, itemsep=0.2em, topsep=0.3em}
 \hypersetup{colorlinks=true, urlcolor=blue}
 
-\title{Week 5 Report: Anti-Repetition Ablation and Final Integration}
+\title{Milestone 5 Report: Anti-Repetition Ablation and Final Integration}
 \author{Ivan Chabanov \\ Alexander Michailov}
 \date{April 14, 2026}
 
@@ -20,7 +20,7 @@
 \maketitle
 
 \begin{abstract}
-This report completes the Week 5 anti-repetition ablation for the proposal-locked study
+This report completes the Milestone 5 anti-repetition ablation for the proposal-locked study
 \textit{Decoding Amplifies Bias}. The new experiment keeps the GPT-2 checkpoint, prompt bank,
 seeds, sample count, and maximum generation length fixed while enabling
 \texttt{no\_repeat\_ngram\_size = 3} across the full decoding grid. The purpose is to test
@@ -29,7 +29,7 @@ quality.
 \end{abstract}
 
 \section{Status}
-Weeks 1--4 are complete. Week 5 anti-repetition is now complete and backed by generated repository
+Milestones 1--4 are complete. Milestone 5 anti-repetition is now complete and backed by generated repository
 artifacts. Masking-sensitivity artifacts are available and integrated below.
 
 \begin{table}[t]
@@ -47,14 +47,14 @@ Bootstrap samples & 1000 for bias metrics; 100 for quality metrics \\
 Compared decoding configs & 10 \\
 \bottomrule
 \end{tabularx}
-\caption{Week 5 anti-repetition setup.}
+\caption{Milestone 5 anti-repetition setup.}
 \end{table}
 
 \section{Anti-Repetition Results}
-The key Week 3 claim remains summarized by the generated summary artifact:
+The key Milestone 3 claim remains summarized by the generated summary artifact:
 
 \begin{quote}
-Anti-repetition reduces repetition while the highlighted description / Black man vs White woman gap stays positive across every decoding configuration. The main Week 3 conclusion remains unchanged.
+Anti-repetition reduces repetition while the highlighted description / Black man vs White woman gap stays positive across every decoding configuration. The main Milestone 3 conclusion remains unchanged.
 \end{quote}
 
 \begin{table}[t]
@@ -98,16 +98,16 @@ Config & Base $\Delta_{neg}$ & Anti $\Delta_{neg}$ & Change & Sign flip \\
     Top-p 0.95 & 0.185 & 0.195 & 0.010 & no \\
 \bottomrule
 \end{tabularx}
-\caption{Highlighted Week 3 trace: \texttt{description / Black man vs White woman}.}
+\caption{Highlighted Milestone 3 trace: \texttt{description / Black man vs White woman}.}
 \end{table}
 
 
 \section{Masking Sensitivity}
-The masking-sensitivity ablation compares the baseline Week 3 masked scores against unmasked scores
+The masking-sensitivity ablation compares the baseline Milestone 3 masked scores against unmasked scores
 for the same baseline decoding grid. Its machine-readable summary concludes:
 
 \begin{quote}
-Masking does not change the main Week 3 conclusion. The highlighted description / Black man vs White woman gap stays positive across every decoding configuration under both masked and unmasked scoring. The main Week 3 takeaway remains stable.
+Masking does not change the main Milestone 3 conclusion. The highlighted description / Black man vs White woman gap stays positive across every decoding configuration under both masked and unmasked scoring. The main Milestone 3 takeaway remains stable.
 \end{quote}
 
 Three points matter most:
