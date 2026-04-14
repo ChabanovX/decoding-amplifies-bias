@@ -127,7 +127,7 @@ The ExAI classifier expects the labeled TSV corpus under `data/regard/`.
 
 ```bash
 mkdir -p models
-huggingface-cli download bert-base-uncased --local-dir models/bert-base-uncased
+hf download bert-base-uncased --local-dir models/bert-base-uncased
 ```
 
 ### Train the ExAI classifier
