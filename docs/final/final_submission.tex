@@ -1,0 +1,359 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\setlist[itemize]{leftmargin=1.2em, itemsep=0.25em, topsep=0.3em}
+\hypersetup{colorlinks=true, urlcolor=blue}
+
+\title{Final Project Implementation Step\\\large Decoding Amplifies Bias: Measuring Regard Under GPT-2 Decoding Choices}
+\author{Ivan Chabanov \\ Alexander Michailov}
+\date{April 14, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This final report consolidates the implementation and findings for the proposal-locked study
+\textit{Decoding Amplifies Bias: Measuring ``Regard'' in Open-Ended Text Generation}. The core
+question is whether decoding alone, with a fixed pretrained GPT-2 checkpoint, changes measured
+social bias in generated text. The repository implements the full planned pipeline: a fixed prompt
+bank, greedy and sampled generation, caching and manifests, released regard scoring with demographic
+masking, decoding-grid bias and quality metrics, bootstrap confidence intervals, and two final
+ablations. Across the full study, sampling improves diversity and reduces degeneration relative to
+greedy decoding, but the highlighted negative-regard gap for \texttt{description / Black man vs
+White woman} stays positive under every decoding configuration. Masking sensitivity and
+anti-repetition do not overturn that main conclusion.
+\end{abstract}
+
+\begin{center}
+\small
+\url{https://github.com/ChabanovX/decoding-amplifies-bias}
+\end{center}
+
+\section{Project Scope and Study Design}
+The implementation follows the original proposal and the repository requirements exactly. The
+generator is pretrained GPT-2 small with no fine-tuning, and the study compares greedy decoding
+against the planned temperature, top-$k$, and top-$p$ decoding families. Bias is operationalized
+with the regard framing introduced by Sheng et al., and generations are scored with the released
+\texttt{sasha/regardv3} classifier after replacing demographic mentions with \texttt{XYZ}. Quality
+controls are tracked alongside bias metrics so that any bias shift can be interpreted together with
+changes in diversity and repetition.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+Item & Value \\
+\midrule
+Generator checkpoint & \texttt{gpt2} \\
+Prompt bank & \texttt{data/prompt\_bank\_v1.csv}; 48 prompts across 12 templates and 4 demographics \\
+Demographics & Black woman, Black man, White woman, White man \\
+Samples per prompt-demographic & 50 \\
+Seeds & \texttt{[0, 1, 2]} \\
+Maximum new tokens & 40 \\
+Decoding grid & greedy; temperature $\{0.7, 1.0, 1.3\}$; top-$k$ $\{20, 50, 100\}$; top-$p$ $\{0.8, 0.9, 0.95\}$ \\
+Primary bias metrics & regard distribution per group; negative-regard gap $\Delta_{\text{neg}}$ with bootstrap CIs \\
+Quality controls & distinct-1, distinct-2, repeated 3-gram rate, longest repetition span \\
+Environment snapshot & CPU; Python 3.12.11; Torch 2.10.0; Transformers 4.57.6; Pandas 2.3.3; PyArrow 19.0.1 \\
+\bottomrule
+\end{tabularx}
+\caption{Fixed study configuration recorded by the generation manifest and reused across milestones.}
+\end{table}
+
+The final core study covers 72{,}000 scored generations across 10 decoding configurations. All
+comparisons keep the checkpoint, prompt bank, sample count, seeds, and maximum generation length
+fixed. This is important because the project asks whether decoding changes bias under a controlled
+generator setup rather than whether different models behave differently.
+
+\section{Protocol Details}
+The prompt bank was designed to stay small enough for reproducible class-scale experiments while
+still covering multiple prompt families. Each prompt type is instantiated for the same four
+demographics so that decoding comparisons are not confounded by unequal template coverage.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+Prompt type & Count \\
+\midrule
+Occupation & 16 \\
+Description & 16 \\
+Aspiration & 8 \\
+Achievement & 8 \\
+\bottomrule
+\end{tabular}
+\caption{Prompt-bank composition for the fixed study corpus.}
+\end{table}
+
+The scoring and evaluation protocol follows the proposal's fairness constraints:
+\begin{itemize}
+\item Every decoding configuration uses the same prompt bank, sample count, seeds, and maximum length.
+\item Demographic masking replaces explicit identity mentions with \texttt{XYZ} before regard scoring.
+\item Bias is analyzed both as group-level label distributions and as pairwise negative-regard gaps within the same prompt type.
+\item Confidence intervals are estimated with bootstrap resampling over generated outputs so that conclusions are not based on a single point estimate.
+\end{itemize}
+
+This design matters for interpretation. A decoding configuration can improve quality simply by being
+more diverse or more verbose, but the controlled setup helps isolate whether those decoding changes
+also move the distribution of regard scores. The Week 5 ablations were added for the same reason:
+to test whether masking or repetition control would materially change the sign of the main gap.
+
+\section{Implementation and Reproducibility}
+The repository was built around deterministic artifacts and rerun safety. Generation commands write
+cached parquet files and matching manifests under \nolinkurl{outputs/generations/} and
+\nolinkurl{outputs/manifests/}. Scoring writes row-level predictions under
+\nolinkurl{outputs/scores/}, and aggregated metrics are stored under \nolinkurl{outputs/metrics/}
+and \nolinkurl{outputs/reports/}. The initial greedy manifest
+\texttt{e64c237a9d1c5330a8ce.json} records the study environment, prompt-bank digest, model name,
+decoding settings, sample count, and seeds. This allows reruns to reuse cached generations instead
+of recomputing them.
+
+The execution path is end-to-end and scriptable from the command line:
+\begin{itemize}
+\item \texttt{generate} and \texttt{score} produce the greedy baseline.
+\item \texttt{generate-grid}, \texttt{score-grid}, and \texttt{week3-metrics} run the main decoding study.
+\item \texttt{masking-sensitivity} and \texttt{week5-antirep} run the two Week 5 ablations.
+\end{itemize}
+
+The repository README now documents the exact setup and command sequence needed to reproduce the
+main study, regenerate metrics, and rebuild this final PDF. Because generated text can contain
+offensive content, the implementation stores machine-readable aggregates and only minimal excerpts
+needed for inspection. Large raw dumps are intentionally excluded from the report and should not be
+committed.
+
+\section{Core Milestone Results}
+\subsection*{Milestone 1: Prompt Bank, Greedy Generation, and Caching}
+Milestone 1 established the fixed prompt bank and greedy generation runner. The bank is balanced by
+construction: 48 prompts from 12 templates, with every template instantiated once for each of the
+four demographics. The first greedy run produced 7{,}200 stored rows and a stable manifest. Even
+before scoring, the greedy outputs showed severe degeneration: only 43 unique completion strings
+appeared across the deduplicated Week 1 analysis, which made a strong case for later quality
+controls.
+
+\subsection*{Milestone 2: Baseline Regard Scoring}
+Milestone 2 integrated the released regard classifier and demographic masking. On the greedy
+baseline, negative regard was systematically higher for Black demographics than for White
+demographics.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Demographic & Negative & Neutral & Positive & Other \\
+\midrule
+Black woman & 0.417 & 0.000 & 0.500 & 0.083 \\
+Black man & 0.417 & 0.167 & 0.250 & 0.167 \\
+White woman & 0.250 & 0.000 & 0.750 & 0.000 \\
+White man & 0.167 & 0.083 & 0.750 & 0.000 \\
+\bottomrule
+\end{tabular}
+\caption{Greedy baseline regard distribution by demographic.}
+\end{table}
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}llcc@{}}
+\toprule
+Prompt type & Comparison & $\Delta_{\text{neg}}$ & 95\% CI \\
+\midrule
+Occupation & Black woman $-$ White woman & 0.250 & (0.195, 0.302) \\
+Occupation & Black man $-$ White man & 0.250 & (0.203, 0.303) \\
+Description & Black man $-$ White woman & 0.250 & (0.198, 0.302) \\
+Description & Black man $-$ White man & 0.500 & (0.460, 0.543) \\
+\bottomrule
+\end{tabular}
+\caption{Representative Milestone 2 negative-regard gaps under greedy decoding.}
+\end{table}
+
+The greedy baseline is therefore not only repetitive but also asymmetric under released regard
+scoring. Aspiration and achievement prompts were much less separated in the greedy baseline, but
+occupation and description prompts already showed clear negative-regard gaps.
+
+\subsection*{Milestone 3: Decoding Sweep}
+Milestone 3 executed the full proposal grid with the fairness constraints held fixed. The main
+pattern is that sampled decoding substantially improves quality metrics relative to greedy decoding,
+but the highlighted \texttt{description / Black man vs White woman} gap remains positive for every
+decoding family.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Config & Distinct-2 & Repeated 3-gram & $\Delta_{\text{neg}}$ key trace \\
+\midrule
+Greedy & 0.002 & 0.997 & 0.250 \\
+Temperature 0.7 & 0.270 & 0.472 & 0.185 \\
+Temperature 1.0 & 0.358 & 0.353 & 0.193 \\
+Temperature 1.3 & 0.411 & 0.303 & 0.133 \\
+Top-k 20 & 0.309 & 0.398 & 0.205 \\
+Top-k 50 & 0.358 & 0.350 & 0.163 \\
+Top-k 100 & 0.383 & 0.341 & 0.202 \\
+Top-p 0.8 & 0.284 & 0.431 & 0.208 \\
+Top-p 0.9 & 0.316 & 0.390 & 0.152 \\
+Top-p 0.95 & 0.334 & 0.373 & 0.185 \\
+\bottomrule
+\end{tabular}
+\caption{Milestone 3 summary: quality improves under sampling, but the highlighted negative-regard gap stays positive.}
+\end{table}
+
+Greedy decoding is the worst case for degeneration, with an almost zero distinct-2 score and a
+repeated 3-gram rate near one. Temperature 1.3 produces the strongest diversity result in this
+study, while top-$k$ and top-$p$ offer intermediate trade-offs. Importantly, none of those quality
+improvements eliminate the highlighted bias trace. The final study conclusion is therefore not
+``sampling fixes the problem''; it is that decoding changes quality strongly and bias somewhat, but
+it does not erase the observed asymmetry in this prompt bank.
+
+\section{Week 5 Ablations and Final Interpretation}
+Week 5 adds the two planned ablations: masking sensitivity and anti-repetition. Both were designed
+to test whether the main Week 3 conclusion was fragile to implementation choices.
+
+\subsection*{Masking Sensitivity}
+The masking ablation compares masked and unmasked scoring on the same Week 3 decoding grid. Across
+240 compared prompt-type and group-pair rows, only two sign flips appeared anywhere in the full
+comparison, and the maximum absolute change in $\Delta_{\text{neg}}$ was 0.02. For the highlighted
+\texttt{description / Black man vs White woman} trace, the gap stayed positive for all 10 decoding
+configurations under both masked and unmasked scoring. This supports keeping masking in the final
+pipeline without claiming that masking creates the core conclusion by itself.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Config & Masked $\Delta_{\text{neg}}$ & Unmasked $\Delta_{\text{neg}}$ & $\Delta$ \\
+\midrule
+Greedy & 0.250 & 0.250 & 0.000 \\
+Temperature 0.7 & 0.185 & 0.182 & -0.003 \\
+Temperature 1.0 & 0.193 & 0.193 & 0.000 \\
+Temperature 1.3 & 0.133 & 0.137 & 0.003 \\
+Top-k 20 & 0.205 & 0.202 & -0.003 \\
+Top-k 50 & 0.163 & 0.162 & -0.002 \\
+Top-k 100 & 0.202 & 0.197 & -0.005 \\
+Top-p 0.8 & 0.208 & 0.200 & -0.008 \\
+Top-p 0.9 & 0.152 & 0.147 & -0.005 \\
+Top-p 0.95 & 0.185 & 0.180 & -0.005 \\
+\bottomrule
+\end{tabular}
+\caption{Masking-sensitivity key trace for \texttt{description / Black man vs White woman}. The sign stays positive in all settings.}
+\end{table}
+
+\subsection*{Anti-Repetition}
+The anti-repetition ablation enables \texttt{no\_repeat\_ngram\_size = 3} across the full decoding
+grid and compares the resulting outputs against the baseline sweep.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Config & Base $\Delta_{\text{neg}}$ & Anti $\Delta_{\text{neg}}$ & $\Delta$ gap & Sign flip \\
+\midrule
+Greedy & 0.250 & 0.250 & 0.000 & no \\
+Temperature 0.7 & 0.185 & 0.188 & 0.003 & no \\
+Temperature 1.0 & 0.193 & 0.212 & 0.018 & no \\
+Temperature 1.3 & 0.133 & 0.133 & 0.000 & no \\
+Top-k 20 & 0.205 & 0.185 & -0.020 & no \\
+Top-k 50 & 0.163 & 0.212 & 0.048 & no \\
+Top-k 100 & 0.202 & 0.198 & -0.003 & no \\
+Top-p 0.8 & 0.208 & 0.160 & -0.048 & no \\
+Top-p 0.9 & 0.152 & 0.205 & 0.053 & no \\
+Top-p 0.95 & 0.185 & 0.195 & 0.010 & no \\
+\bottomrule
+\end{tabular}
+\caption{Anti-repetition does not flip the sign of the highlighted Milestone 3 bias trace in any decoding configuration.}
+\end{table}
+
+Anti-repetition improved repeated 3-gram rate in 8 of 10 configurations and improved distinct-2 in
+all 10 configurations. The largest quality gain occurred at temperature 0.7, where repeated 3-gram
+rate fell by about 0.015 and distinct-2 rose by about 0.010. However, the main interpretive point
+is again conservative: quality becomes better behaved, but the highlighted bias conclusion remains
+stable. The final integrated summary stored in \texttt{outputs/reports/week5\_final\_summary.json}
+therefore marks the Week 3 conclusion as unchanged after both ablations.
+
+\section{Optional Week 4 Extension}
+The proposal listed classifier replication as an optional stronger extension. The repository
+includes that extension under \texttt{src/app/exai/} and \texttt{outputs/exai/}. A fine-tuned
+BERT-based classifier was trained and compared against the released scorer, but these artifacts are
+not required to reproduce the core decoding study above.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Evaluation target & Accuracy / agreement & Macro F1 \\
+\midrule
+Held-out test split & 0.639 & 0.483 \\
+Explanation benchmark & 0.250 & 0.125 \\
+Released scorer agreement on test split & 0.694 & 0.494 \\
+\bottomrule
+\end{tabular}
+\caption{Optional Week 4 classifier-replication summary from saved \texttt{outputs/exai/eval/} artifacts.}
+\end{table}
+
+This extension is useful as a robustness and ownership exercise, but it does not change the main
+claim of the project. The decoding-study conclusions in this final report rely on the released
+scorer, fixed prompt bank, and Week 5 ablations, which remain the primary graded deliverable.
+
+\section{Discussion}
+The final results support a narrow but defensible claim. Decoding clearly changes surface behavior:
+greedy decoding is highly repetitive, and sampling materially improves diversity. Decoding also
+changes measured bias, but those shifts are smaller and less transformative than the quality
+changes. In the highlighted trace, every decoding family preserves a positive negative-regard gap
+even when the magnitude moves.
+
+That pattern matters because it guards against an overly simple narrative. The project does not show
+that a single decoding choice ``causes'' bias in isolation, nor does it show that a higher-entropy
+sampler is a general fairness fix. Instead, it shows that decoding is one controllable part of the
+generation stack that can change both quality and measured social asymmetry, so it deserves to be
+treated as an experimental variable rather than as an implementation afterthought.
+
+The ablations reinforce that interpretation. Masking changes some scores modestly but does not
+remove the central signal. Anti-repetition makes outputs more readable and less degenerate, but it
+also leaves the highlighted gap positive in every setting. Together, those results suggest that the
+core conclusion is not an artifact of one brittle scoring or decoding option.
+
+\section{Limitations, Ethics, and Final Deliverables}
+The study remains intentionally narrow. The prompt bank is synthetic and small enough to be
+manageable on course hardware, so the results should not be read as a universal statement about
+all demographic prompts or all language models. The regard classifier is itself an imperfect
+artifact, which is why the report includes bootstrap uncertainty, sanity checks, masking
+sensitivity, and an optional owned-classifier comparison rather than a single point estimate.
+
+The ethics constraint is non-negotiable: generated text may contain offensive content, and the
+project should not publish large raw generations. This report therefore emphasizes aggregated
+metrics, short artifact references, and only minimal qualitative characterization.
+
+The final submission package now includes:
+\begin{itemize}
+\item this final PDF report,
+\item complete references below,
+\item repository code with reproducible CLI entrypoints,
+\item an updated \texttt{README.md} with dependency installation and end-to-end execution instructions.
+\end{itemize}
+
+\section*{References}
+\small
+\begin{enumerate}[label={[}\arabic*{]}]
+\item Emily Sheng, Kai-Wei Chang, Prem Natarajan, and Nanyun Peng. \textit{The Woman Worked as a Babysitter: On Biases in Language Generation}. EMNLP-IJCNLP, 2019.
+\item Ari Holtzman, Jan Buys, Li Du, Maxwell Forbes, and Yejin Choi. \textit{The Curious Case of Neural Text Degeneration}. ICLR, 2020.
+\item Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, and Ilya Sutskever. \textit{Language Models are Unsupervised Multitask Learners}. OpenAI technical report, 2019.
+\item Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. \textit{BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding}. NAACL-HLT, 2019.
+\item \texttt{sasha/regardv3}. Released regard-scoring model and workflow used by this repository for masked and unmasked scoring. Accessed during project implementation in March--April 2026.
+\item Hugging Face \texttt{transformers} library documentation and released model interfaces for \texttt{gpt2} and BERT-family checkpoints, used as the execution framework for generation and classification.
+\end{enumerate}
+
+\end{document}
