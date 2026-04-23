@@ -140,7 +140,9 @@ The output is a signed relevance score per token. A heatmap is usually the clear
 - stronger blue: stronger opposition to the selected class
 - pale or neutral: weak contribution
 
-[Insert Heatmap: Token-level relevance for a short generated text, with red/blue signed attribution. The caption should state the target class being explained.]
+![ex](images/token_relev.png)
+
+![ex](images/more_token_relev.png)
 
 The important reading habit is to compare the highlighted tokens with the predicted label. If the target class is `negative`, do the high-relevance tokens look like negative evidence? Or are they demographic terms, named entities, punctuation, or repetition artifacts?
 
@@ -280,9 +282,10 @@ These numbers suggest that the classifier learned useful regard distinctions, bu
 | positive | 0.545 | 0.500 | 0.600 | 10 |
 | other | 0.000 | 0.000 | 0.000 | 3 |
 
-[Insert Figure: Confusion matrix for the held-out test split using `outputs/exai/eval/eval_8b61448b2a58a12bceae_test_metrics.json`. The reader should look for which classes are confused most often, especially whether `other` is rarely predicted correctly.]
 
-[Insert Figure: Class-wise F1 bar chart for negative, neutral, positive, and other. The visual should make class imbalance and weak rare-class behavior easy to see.]
+![Class-wise F1 on the held-out regard split](outputs/exai/reports/classwise_f1_bar.png)
+
+The bar chart makes the rare-class issue visible: `negative` is the strongest class, `neutral` and `positive` are moderate, and `other` has no successful held-out predictions in this run. This matters because weak rare-class behavior can make explanations for `other` examples especially hard to trust.
 
 This matters for XAI because explanation quality depends partly on classifier quality. If the classifier makes an unstable or incorrect prediction, the explanation can still describe the model’s behavior, but it does not become an explanation of the correct human label.
 
@@ -348,11 +351,10 @@ For a successful or at least internally consistent case, the visual should show 
 2. the predicted regard label
 3. the token relevance heatmap
 
-Use [the agreeing neutral heatmap](outputs/exai/explanations/explanation_a709a46c1914674f5183.html) for this part. In this audit row, the scoring-pipeline label and local BERT prediction both equal `neutral`.
+![the agreeing neutral heatmap](images/success.png) In this audit row, the scoring-pipeline label and local BERT prediction both equal `neutral`.
 
 The important thing to look for is whether the highlighted evidence looks like neutral narrative/context evidence rather than direct demographic evidence. In the saved JSON for this case, highly positive relevance for the neutral target appears on tokens such as `very`, `Eglazzi`, and punctuation/context tokens, while `black` and repeated `man` tokens receive negative relevance for the neutral target. That does not prove the classifier is fair, but it shows how a local explanation can make one agreement case inspectable.
 
-[Insert Figure: Side-by-side panel based on `explanation_a709a46c1914674f5183.html`: short excerpt, scoring label `neutral`, local prediction `neutral`, top positive-relevance tokens, and the rendered heatmap.]
 
 ### Ambiguous / Surprising Case
 
@@ -365,8 +367,6 @@ Use [the demographic-token relevance heatmap](outputs/exai/explanations/explanat
 This is exactly the pattern the blog should highlight. The point is not to claim that the model is definitively biased from one example. The point is that XAI surfaces a concrete audit question: why are identity-bearing tokens relevant for this class score?
 
 Also use [the negative-label mismatch heatmap](outputs/exai/explanations/explanation_0a52c414fbb375734c48.html) as a second mismatch example. The scoring-pipeline label is `negative`, but the local classifier predicts `neutral`; high positive relevance for the negative target includes narrative/context tokens such as `Greencastle`, `couple`, and `husband`, while a clearly concerning token receives negative relevance in the saved explanation. This makes the example useful precisely because the attribution is not intuitively clean.
-
-[Insert Figure: Before/after demographic masking comparison, if available. Show the same text with original demographic terms and with `XYZ` masking, then compare whether token relevance and predicted class shift.]
 
 A useful presentation move is to show one successful case and one ambiguous case back-to-back. The successful case demonstrates why local explanations are helpful. The ambiguous case demonstrates why they are necessary.
 
@@ -406,7 +406,6 @@ The pattern is mixed but interpretable. Explanations were most stable under beni
 
 The reader should look for which perturbations preserve the same highlighted tokens. The strong benign-rephrase overlap is encouraging; the weaker punctuation overlap matters because generated text often contains unusual punctuation, fragments, and formatting artifacts.
 
-[Insert GIF: Cycle through original input, benign rephrase, neutral insertion, and punctuation variant with changing token heatmaps. The GIF should make attribution stability or instability visually obvious.]
 
 For the decoding-bias project, this matters because generated text often contains odd punctuation, fragments, and repetition. If explanations are sensitive to these artifacts, we should be cautious when interpreting single-example heatmaps.
 
