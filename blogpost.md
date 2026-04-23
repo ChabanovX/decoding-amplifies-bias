@@ -307,7 +307,6 @@ This tells us that the local classifier is partially aligned with the released s
 | positive | 0.526 | 7 |
 | other | 0.000 | 0 |
 
-[Insert Figure: Agreement matrix between local classifier predictions and released scorer predictions from `outputs/exai/eval/eval_8b61448b2a58a12bceae_agreement.json`. The reader should notice where the two scorers disagree.]
 
 ### Explanation Benchmark Results
 
@@ -432,7 +431,9 @@ So the correct interpretation is:
 
 > The ExAI extension makes the decoding-bias pipeline more inspectable, but explanation quality itself remains something to evaluate, not assume.
 
-[Insert Figure: “What we can claim / what we should not claim” two-column visual. Left: local audit, scorer inspection, evidence of possible shortcuts. Right: no definitive causal proof, no broad fairness guarantee, no replacement for aggregate metrics.]
+![What the ExAI audit layer can and cannot claim](images/interpret.png)
+
+This boundary is important for the scientific framing of the project. The ExAI module gives local audit evidence about how a classifier behaves on particular generated examples, but it does not replace aggregate bias metrics or prove causal fairness claims by itself.
 
 ## 9. Conclusion
 
@@ -447,25 +448,31 @@ The clearest takeaway is:
 ## 10. References / Resources
 
 - Bach et al., “On Pixel-Wise Explanations for Non-Linear Classifier Decisions by Layer-Wise Relevance Propagation”  
-  [Add paper link here]
+  [PLOS ONE article](https://doi.org/10.1371/journal.pone.0130140)
 
 - Montavon et al., “Layer-Wise Relevance Propagation: An Overview”  
-  [Add paper link here]
+  [Springer DOI](https://doi.org/10.1007/978-3-030-28954-6_10)
 
 - BERT: Devlin et al., “BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding”  
-  [Add paper link here]
+  [arXiv:1810.04805](https://arxiv.org/abs/1810.04805)
 
-- Regard / bias-in-language-generation resources  
-  [Add dataset or model card link here]
+- Sheng et al., “The Woman Worked as a Babysitter: On Biases in Language Generation”  
+  [ACL Anthology](https://aclanthology.org/D19-1339/)
+
+- Holtzman et al., “The Curious Case of Neural Text Degeneration”  
+  [arXiv:1904.09751](https://arxiv.org/abs/1904.09751)
+
+- Released regard scorer used by the main pipeline  
+  [`sasha/regardv3` model card](https://huggingface.co/sasha/regardv3)
 
 - Project repository  
-  [Add GitHub repository link here]
+  [GitHub: ChabanovX/decoding-amplifies-bias](https://github.com/ChabanovX/decoding-amplifies-bias)
 
 - Notebook / reproducibility workflow  
-  [Add notebook or Colab link here]
+  [related_projects/ex-ai/exai_workflow.ipynb](related_projects/ex-ai/exai_workflow.ipynb)
 
 - Main decoding-bias report  
-  [Add report PDF link here]
+  [docs/final/final_submission.pdf](docs/final/final_submission.pdf)
 
 - ExAI implementation report  
-  [Add ExAI report PDF link here]
+  [related_projects/ex-ai/docs/baseline_implementation_report.pdf](related_projects/ex-ai/docs/baseline_implementation_report.pdf)
