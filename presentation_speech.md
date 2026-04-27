@@ -32,12 +32,6 @@ So this is a GenAI experiment about how decoding affects output quality and meas
 
 The key design choice is control. We do not compare different models. We fix GPT-2 small, prompts, demographic groups, seeds, sample count, and max length. The variable we change is decoding.
 
-Autoregressive models generate one token at a time. Decoding decides how we choose each next token.
-
-Greedy chooses the most likely token. Temperature changes distribution sharpness. Top-k samples from the k most likely tokens. Top-p samples from the smallest token set whose probability mass reaches p.
-
-These are usually quality settings, but they can also change which portrayals appear in generated text.
-
 For bias measurement we use regard: how positively or negatively text portrays a demographic group. Our main metric is the negative-regard gap between two groups under the same prompt type.
 
 ---
