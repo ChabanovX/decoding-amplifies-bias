@@ -5,188 +5,366 @@ class: invert
 paginate: true
 style: |
   section { font-size: 24px; }
-
-
+  table { font-size: 20px; }
+  .small { font-size: 18px; }
 ---
-
 
 <!-- _class: lead invert -->
 
-# **ExAI as an Audit Layer for Decoding‑Bias Measurement**
+# **Decoding Amplifies Bias**
 
-### Ivan Chabanov & Aleksandr Michailov
+### Measuring Regard Under GPT-2 Decoding Choices
 
----
-
-## 📌 Project Idea
-
-**Core concept:**  
-Decoding strategies (temperature, top‑k, top‑p, anti‑repetition) change social bias in GPT‑2 generated text.  
-Aggregate regard metrics (negative/neutral/positive/other) are useful but **black‑box**.
-
-**ExAI extension** adds an **audit layer**:
-- Train a BERT‑based regard classifier
-- Explain its predictions with **Layer‑wise Relevance Propagation (LRP)**
-- Provide token‑level heatmaps to inspect *why* a generation received a particular label
-
-> *“Decoding analysis tells **how** bias metrics change; ExAI helps inspect **why**.”*
+Ivan Chabanov & Aleksandr Michailov
 
 ---
 
-## 📚 Relevant Theory
+## Project Idea
 
-### Explainability need
-Raw classifier accuracy hides *how* decisions are made. We need to know if the model relies on:
-- Sentiment words
-- Demographic terms
-- Repetition / generation artifacts
+**Question:** if the language model checkpoint is fixed, can decoding alone change measured social bias in generated text?
 
----
-## 📚 Relevant Theory
-### Layer‑wise Relevance Propagation (LRP)
-- Redistributes the output score **backward** onto input tokens
-- For a linear layer:  
-  $$ z_{ij} = x_i w_{ij}, \quad R_i = \sum_j \frac{z_{ij}}{\sum_i z_{ij} + \epsilon} R_j $$
-- **Positive relevance** → supports the target class  
-- **Negative relevance** → opposes it
+We study GPT-2 open-ended generation under:
 
-Our implementation applies epsilon‑LRP to the classifier head + approximations for attention, residuals, and layer norm.
+- greedy decoding
+- temperature sampling: 0.7, 1.0, 1.3
+- top-k sampling: 20, 50, 100
+- top-p sampling: 0.8, 0.9, 0.95
+- optional no-repeat 3-gram decoding
+
+Bias is measured with **regard**: whether a generation portrays a demographic negatively, neutrally, positively, or as other.
 
 ---
 
-## 📚 Relevant Theory
-### Layer‑wise Relevance Propagation (LRP)
-![bg](images/backward.png)
+## GenAI Framing
+
+This is a **controlled generation experiment**, not a model-comparison benchmark.
+
+We keep fixed:
+
+- GPT-2 small checkpoint
+- prompt bank
+- demographics
+- seeds
+- sample count
+- maximum generation length
+
+Then we vary only the decoding algorithm and measure how the output distribution changes.
 
 ---
 
-## 🛠️ Implementation
+## Relevant Theory: Decoding
 
-### 1. Data & training
-- 325 labeled regard examples (258 train, 31 val, 36 test) – unbalanced (`other` has only 23)
-- Fine‑tuned `bert-base-uncased` for 4‑class regard classification
+Autoregressive language models generate one token at a time:
 
-### 2. ExAI inference pipeline
+$$p(x_t \mid x_{<t})$$
 
-```python
-runner = ExAIInferenceRunner(checkpoint_dir, device="cpu")
-explainer = TransformerLRPExplainer(runner)
+Decoding turns that probability distribution into text.
 
-text = "The nurse helped the patient."
-inference = runner.predict_text(text)
-explanation = explainer.explain_inference(inference)
+| Method | Effect |
+| --- | --- |
+| Greedy | always picks the highest-probability token |
+| Temperature | sharpens or flattens token probabilities |
+| Top-k | samples from the k most likely tokens |
+| Top-p | samples from the smallest set whose mass exceeds p |
+| No-repeat n-gram | blocks repeated n-gram continuations |
+
+---
+
+## Relevant Theory: Why Decoding May Affect Bias
+
+Decoding changes which continuations are likely to appear.
+
+- Greedy can collapse into repetitive, high-probability patterns.
+- Higher temperature increases diversity and lower-probability continuations.
+- Top-k and top-p restrict randomness differently.
+- Anti-repetition changes local text quality and may change classifier inputs.
+
+So the same model can produce different **measured regard distributions** under different decoding choices.
+
+---
+
+## Relevant Theory: Regard
+
+We use the framing from Sheng et al.:
+
+> regard measures how positively or negatively generated text portrays a demographic group.
+
+Labels:
+
+```text
+negative | neutral | positive | other
 ```
 
-### 3. Audit benchmark
-- 12 real scored generations from the decoding pipeline
-- Covers 3 scoring labels, 3 demographics, 3 prompt types (approximate)
-- For each: predict label → compute LRP → save JSON + HTML heatmap
+Primary metric:
 
-### 4. Validation
-- Faithfulness: remove top‑attributed tokens vs random
-- Sensitivity: perturb input (rephrase, insertion, punctuation)
+$$\Delta_{neg} = P(negative \mid group A) - P(negative \mid group B)$$
+
+We report group distributions and bootstrap confidence intervals.
 
 ---
 
-![bg](images/main_pipeline.png)
+## Experimental Design
+
+| Item | Value |
+| --- | --- |
+| Generator | pretrained `gpt2`, no fine-tuning |
+| Prompt bank | 12 templates x 4 demographic variants |
+| Prompt types | occupation, description, aspiration, achievement |
+| Demographics | Black woman, Black man, White woman, White man |
+| Samples | 50 per prompt per seed |
+| Seeds | 0, 1, 2 |
+| Max new tokens | 40 |
+| Decoding configs | 10 |
+| Final scale | 72,000 scored generations |
 
 ---
 
-## 📊 Results
+## Implementation
 
-### Classifier performance (held‑out test)
+Pipeline:
 
-| Class     | F1    | Support |
-|-----------|-------|---------|
-| negative  | 0.800 | 13      |
-| neutral   | 0.588 | 10      |
-| positive  | 0.545 | 10      |
-| other     | 0.000 | 3       |
+```text
+fixed prompt bank
+        |
+GPT-2 generation under decoding config
+        |
+cached generated continuations
+        |
+demographic masking with XYZ
+        |
+released regard classifier
+        |
+bias metrics + quality metrics + bootstrap CIs
+```
 
-**Accuracy: 0.639 | Macro F1: 0.483**
+Quality controls:
 
-**Agreement with released scorer (`sasha/regardv3`):** 0.694 accuracy, 0.494 macro F1
-
-### Benchmark on 12 generated examples
-- **Accuracy: 0.250** (only 3/12 agree with scoring labels)
-- Domain shift: generated continuations differ from training data
-
----
-
-## 🔍 Example Explanations
-
-### ✅ Insightful (agreement case)
-- Scoring & BERT both = `neutral`
-- High relevance on neutral target: `very`, `Eglazzi`, punctuation
-- Demographic tokens (`black`, `man`) get **negative** relevance for neutral class  
-*Heatmap shows inspectable, plausible evidence.*
-
-### ⚠️ Ambiguous (demographic‑token relevance)
-- Scoring = `negative`, BERT = `neutral` (disagreement)
-- Target class = `negative` → high positive relevance includes `black`, `woman`, `she`, `her`  
-👉 *Surfaces audit question: why identity tokens matter for negative regard?*
+- distinct-1 / distinct-2
+- repeated 3-gram rate
+- longest repetition span
 
 ---
 
-![bg](images/more_token_relev.png)
+![bg contain](images/main_pipeline.png)
 
 ---
 
-![bg](outputs/plots/fbe608112493c39dd4d4_regard_distribution.png)
+## Reproducibility
+
+The project was built around cached, rerunnable artifacts.
+
+- generation cache avoids recomputation
+- manifests record config, seeds, prompt-bank digest, environment
+- scoring artifacts separate raw generations from aggregate reports
+- outputs may contain offensive text, so the report avoids large raw dumps
+
+Core implementation files:
+
+- [src/app/generation.py](src/app/generation.py)
+- [src/app/scoring.py](src/app/scoring.py)
+- [src/app/metrics.py](src/app/metrics.py)
+- [src/app/quality.py](src/app/quality.py)
 
 ---
 
-## ✅ Faithfulness & Sensitivity
+## Results: Greedy Baseline
 
-### Faithfulness (token removal)
-- Top‑attribution removal mean drop: **0.0123**
-- Random removal drop: **0.0152**  
-❌ Top removal not clearly larger → explanations are **heuristic**, not strong causal proof
+Greedy decoding produced strong repetition and visible regard gaps.
 
-### Sensitivity (top‑5 token overlap)
+| Demographic | Neg | Neu | Pos | Other |
+| --- | ---: | ---: | ---: | ---: |
+| Black woman | 0.417 | 0.000 | 0.500 | 0.083 |
+| Black man | 0.417 | 0.167 | 0.250 | 0.167 |
+| White woman | 0.250 | 0.000 | 0.750 | 0.000 |
+| White man | 0.167 | 0.083 | 0.750 | 0.000 |
 
-| Perturbation       | Overlap |
-|--------------------|---------|
-| Benign rephrase    | 0.875   |
-| Neutral insertion  | 0.667   |
-| Punctuation change | 0.446   |
-
-✅ Stable under rephrasing; weaker on punctuation (important for generated text with artifacts)
+Greedy was useful as a baseline, but it was also the most degenerate generation mode.
 
 ---
 
-## 👥 Team Contributions
-
-| Team Member          | Contributions |
-|----------------------|----------------|
-| **Ivan Chabanov**    | - Decoding‑bias pipeline (GPT‑2 generation, regard scoring, aggregate metrics)<br>- Prompt bank design<br>- Generation of 72,000 scored examples<br>- Anti‑repetition & gap analysis |
-| **Aleksandr Michailov** | - ExAI module design & implementation<br>- BERT regard classifier training<br>- LRP integration for Transformers<br>- Faithfulness & sensitivity benchmarks<br>- Heatmap rendering & audit benchmark |
-
-*Both authors contributed to writing, analysis, and interpretation of results.*
+![bg contain](outputs/plots/fbe608112493c39dd4d4_regard_distribution.png)
 
 ---
 
-## 🔚 Conclusion
+## Results: Negative-Regard Gaps
 
-- ExAI makes the bias measurement pipeline **transparent** and **inspectable**
-- Token‑level heatmaps are **useful audit evidence** but not causal proof
-- Faithfulness results caution against over‑interpreting single examples
-- **Main takeaway:** XAI is valuable *when combined with validation* – it surfaces questions, not final answers
+Representative greedy gaps:
 
-> “The ExAI extension does not replace aggregate metrics – it complements them with local, inspectable evidence.”
+| Prompt type | Comparison | Gap |
+| --- | --- | ---: |
+| occupation | Black woman - White woman | 0.250 |
+| occupation | Black man - White man | 0.250 |
+| description | Black man - White woman | 0.250 |
+| description | Black man - White man | 0.500 |
+
+The main trace we follow later:
+
+```text
+description / Black man vs White woman
+```
 
 ---
 
-## 📖 References
+![bg contain](outputs/plots/fbe608112493c39dd4d4_negative_gaps.png)
 
-- Bach et al. (LRP) – [PLOS ONE](https://doi.org/10.1371/journal.pone.0130140)
-- Montavon et al. (LRP overview) – [Springer](https://doi.org/10.1007/978-3-030-28954-6_10)
-- Devlin et al. (BERT) – [arXiv:1810.04805](https://arxiv.org/abs/1810.04805)
-- Sheng et al. (bias in generation) – [ACL Anthology](https://aclanthology.org/D19-1339/)
-- Holtzman et al. (decoding) – [arXiv:1904.09751](https://arxiv.org/abs/1904.09751)
-- Released regard scorer – [`sasha/regardv3`](https://huggingface.co/sasha/regardv3)
-- Project repository – [ChabanovX/decoding-amplifies-bias](https://github.com/ChabanovX/decoding-amplifies-bias)
+---
 
-<!-- _class: small -->
+## Results: Decoding Grid
 
-🙌 **Thank you!** – Questions?
+Sampling improved diversity and reduced degeneration.
+
+| Config | Distinct-2 | Repeated 3-gram | Key gap |
+| --- | ---: | ---: | ---: |
+| Greedy | 0.002 | 0.997 | 0.250 |
+| Temperature 0.7 | 0.270 | 0.472 | 0.185 |
+| Temperature 1.0 | 0.358 | 0.353 | 0.193 |
+| Temperature 1.3 | 0.411 | 0.303 | 0.133 |
+| Top-k 50 | 0.358 | 0.350 | 0.163 |
+| Top-p 0.9 | 0.316 | 0.390 | 0.152 |
+
+The key gap shrinks in some settings, but it stays positive.
+
+---
+
+## Main GenAI Finding
+
+Decoding has a large effect on **generation quality**.
+
+- Greedy: extremely repetitive, very low diversity.
+- Sampling: much higher distinct-2, lower repeated 3-gram rate.
+- Temperature 1.3 gives the highest diversity in our grid.
+
+Decoding has a smaller but real effect on **measured regard bias**.
+
+- Bias gaps move across decoding settings.
+- The highlighted description gap stays positive for every setting.
+- Sampling improves fluency/diversity, but does not erase the measured asymmetry.
+
+---
+
+## Week 5 Ablation: Masking
+
+We tested whether demographic masking with `XYZ` created the main result.
+
+Across 240 compared prompt-type/group-pair rows:
+
+- sign flips: 2
+- largest absolute gap change: 0.020
+- key trace: positive under every decoding config
+
+| Config | Masked gap | Unmasked gap |
+| --- | ---: | ---: |
+| Greedy | 0.250 | 0.250 |
+| Temperature 1.3 | 0.133 | 0.137 |
+| Top-k 50 | 0.163 | 0.162 |
+| Top-p 0.9 | 0.152 | 0.147 |
+
+---
+
+## Week 5 Ablation: Anti-Repetition
+
+No-repeat 3-gram mostly improves quality, but does not change the main conclusion.
+
+| Config | Base gap | Anti-rep gap | Sign flip? |
+| --- | ---: | ---: | --- |
+| Greedy | 0.250 | 0.250 | no |
+| Temperature 1.0 | 0.193 | 0.212 | no |
+| Top-k 50 | 0.163 | 0.212 | no |
+| Top-p 0.8 | 0.208 | 0.160 | no |
+| Top-p 0.9 | 0.152 | 0.205 | no |
+
+Distinct-2 improved in 10/10 configs; the key bias trace stayed positive in 10/10 configs.
+
+---
+
+![bg contain](outputs/plots/week5_antirep_quality_delta.png)
+
+---
+
+![bg contain](outputs/plots/week5_antirep_gap_delta.png)
+
+---
+
+## Where ExAI Fits
+
+The LRP work is useful for the GenAI defense, but as an **evaluation audit layer**.
+
+It does **not** explain GPT-2 generation directly.
+
+It explains the BERT-style regard classifier used to score generated text:
+
+```text
+GPT-2 output -> regard classifier -> label
+                              |
+                              v
+                    LRP token relevance
+```
+
+This helps us audit whether labels are driven by content words, demographic tokens, repetition, or punctuation artifacts.
+
+---
+
+## ExAI Audit Results
+
+The audit layer found useful but limited evidence.
+
+- Local BERT regard classifier: 0.639 held-out accuracy, 0.483 macro F1.
+- Agreement with released scorer: 0.694 accuracy.
+- On 12 generated audit examples: only 3/12 agreed with scoring labels.
+- LRP heatmaps surfaced cases where identity tokens had relevance for negative regard.
+- Faithfulness was mixed: top-token removal was not stronger than random removal.
+
+Interpretation: ExAI increases transparency of the scoring layer, but it is not causal proof.
+
+---
+
+![bg contain](images/more_token_relev.png)
+
+---
+
+## Final Results
+
+What we can defend for the GenAI course:
+
+1. We implemented a controlled GPT-2 decoding study.
+2. The full grid produced 72,000 scored generations.
+3. Sampling strongly improved quality over greedy decoding.
+4. Decoding changed measured regard gaps, but did not eliminate the highlighted gap.
+5. Masking and anti-repetition ablations did not overturn the conclusion.
+6. ExAI/LRP made the automatic scoring layer more inspectable.
+
+---
+
+## Team Contributions
+
+| Team Member | Contributions |
+| --- | --- |
+| Ivan Chabanov | GPT-2 generation pipeline, prompt bank, caching/manifests, decoding grid, regard scoring, metrics, plots, final GenAI analysis |
+| Aleksandr Michailov | ExAI module, BERT regard classifier, LRP implementation, heatmap rendering, faithfulness/sensitivity validation, audit benchmark |
+
+Both authors contributed to writing, interpretation, and final presentation materials.
+
+---
+
+## Conclusion
+
+The project shows that decoding is not only a quality knob.
+
+It changes the distribution of generated text, which changes measured social bias. Sampling reduces degeneration and sometimes reduces regard gaps, but the main highlighted negative-regard gap remains positive across all tested decoding settings.
+
+The ExAI part strengthens the defense by auditing the scorer behind those measurements.
+
+---
+
+## References
+
+- Sheng et al., "The Woman Worked as a Babysitter" - [ACL Anthology](https://aclanthology.org/D19-1339/)
+- Holtzman et al., "The Curious Case of Neural Text Degeneration" - [arXiv](https://arxiv.org/abs/1904.09751)
+- Radford et al., GPT-2
+- Devlin et al., BERT - [arXiv](https://arxiv.org/abs/1810.04805)
+- Bach et al., Layer-wise Relevance Propagation - [PLOS ONE](https://doi.org/10.1371/journal.pone.0130140)
+- Released regard scorer - [`sasha/regardv3`](https://huggingface.co/sasha/regardv3)
+
+<!-- _class: lead invert -->
+
+# Questions
