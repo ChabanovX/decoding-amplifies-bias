@@ -22,13 +22,13 @@ Slide cues in brackets are stage directions for the presenters. Do not read them
 
 Hello, we are Ivan Chabanov and Aleksandr Michailov. Our project is "Decoding Amplifies Bias."
 
-The question is: if GPT-2 is fixed, can decoding alone change measured social bias in generated text?
+The question is: if a text generation model is fixed, can decoding change measured social bias in generated text?
 
 [Advance to Slide 2: Project Idea]
 
-We generate continuations with greedy, temperature, top-k, top-p, and no-repeat 3-gram decoding. Then we score the generations with regard labels: negative, neutral, positive, or other.
+We generate completions with different decoding strategies. Then we score the generations with regard labels: negative, neutral, positive, or other.
 
-So this is a GenAI experiment about how decoding affects output quality and measured bias.
+So the project is about how decoding affects output quality and measured bias.
 
 ---
 
@@ -42,11 +42,11 @@ The key design choice is control. We do not compare different models. We fix GPT
 
 [Advance to Slide 4: Decoding Theory]
 
-Autoregressive models generate one token at a time. Decoding decides how we choose each next token.
+As a theory sidenote, decoding decides how we choose next token.
 
 [Advance to Slide 5: Why Decoding May Affect Bias]
 
-These choices are usually quality settings, but they can also change which portrayals appear in generated text.
+Some reasons why decoding may affect bias we present on the slide.
 
 [Advance to Slide 6: Regard Theory]
 
@@ -60,13 +60,13 @@ For bias measurement we use regard: how positively or negatively text portrays a
 
 [Advance to Slide 7: Experimental Design]
 
-We use 12 prompt templates, four demographic variants, four prompt types, three seeds, and 50 samples per prompt per seed. Across 10 decoding configs, this gives 72,000 scored generations.
+We used different configs in our experiments, the tested settings you can see on the screen.
 
 [Advance to Slide 8: Implementation]
 
-The pipeline is: prompt bank, GPT-2 generation, cached continuations, demographic masking with `XYZ`, regard scoring, then bias and quality metrics.
+The pipeline is: prompt bank, GPT-2 generation, continuations, demographic masking, regard scoring, then bias and quality metrics.
 
-We track quality with distinct-1, distinct-2, repeated 3-gram rate, and longest repetition span.
+We track quality with distinct-1, distinct-2, repeated 3-gram rate, and longest repetition span metrics.
 
 [Advance to Slide 9: Pipeline Diagram]
 
@@ -74,7 +74,7 @@ We track quality with distinct-1, distinct-2, repeated 3-gram rate, and longest 
 
 [Advance to Slide 10: Reproducibility]
 
-For reproducibility, generations are cached and manifests record seeds, configs, prompt digest, and environment. We avoid large raw dumps because outputs may contain offensive content.
+For reproducibility, generations are cached and manifests record seeds, configs, prompt digest, and environment.
 
 ---
 
@@ -86,9 +86,7 @@ For reproducibility, generations are cached and manifests record seeds, configs,
 
 The greedy baseline shows two things.
 
-First, greedy decoding is highly repetitive. Second, regard distributions differ across groups. In the baseline table, Black woman and Black man have higher negative-regard rates than White woman and White man.
-
-This motivates the full grid: does sampling improve quality, change gaps, or remove them?
+It is highly repetitive. Second, regard distributions differ across groups. In the baseline table, Black woman and Black man have higher negative-regard rates than White woman and White man.
 
 [Advance to Slide 12: Baseline Distribution Plot]
 
@@ -114,9 +112,9 @@ First, we compute pairwise negative-regard gaps within prompt types.
 
 The main result is the decoding-grid slide.
 
-Sampling clearly improves quality. Greedy has almost no diversity: distinct-2 is 0.002, and repeated 3-gram rate is 0.997. With sampling, diversity rises and repetition falls. Temperature 1.3 reaches distinct-2 of 0.411.
+As you can see, sampling with temperature of 1.3 gave the best scores across all metrics, while greedy strategy gave the most degenerate completions.
 
-But the key bias gap does not disappear. We track description prompts for Black man versus White woman. Greedy has gap 0.250. Temperature 1.3 reduces it to 0.133, but the gap stays positive across the grid.
+The same trend goes for their bias gaps.
 
 [Advance to Slide 16: Main GenAI Finding]
 
@@ -130,13 +128,7 @@ So decoding changes quality and measured bias, but better decoding does not auto
 
 [Advance to Slide 17: Masking Ablation]
 
-Slide 17 checks whether demographic masking created the result.
-
-We replace demographic mentions with `XYZ` before scoring. To test this, we scored the same generations twice: masked and unmasked.
-
-Across 240 comparisons, only two changed sign, and the largest gap change was 0.020. For the main Black man versus White woman trace, the gap stayed positive in every decoding configuration.
-
-So the main result is not caused by `XYZ` masking.
+To test whether out regard classifier was indeed attributing negative regard to the full sentences instead of social groups mentions, we tested it with masking. We compared its results with masked and unmasked sentences, and found a minimal gap in regard.
 
 ---
 
@@ -170,7 +162,7 @@ The highlighted gap stays positive in all configs. Anti-repetition helps degener
 
 The ExAI part is useful, but we frame it carefully.
 
-LRP does not explain GPT-2 generation directly. It explains the BERT-style regard classifier that scores GPT-2 outputs. So it audits the evaluation pipeline.
+LRP does not explain GPT-2 generation directly. It explains our BERT classifier that scores GPT-2 outputs. So it audits the evaluation pipeline.
 
 This matters because our bias metrics depend on automatic scoring. LRP heatmaps show whether the scorer reacts to content words, demographic tokens, repetition, or punctuation artifacts.
 
@@ -190,9 +182,7 @@ The audit found warning signs, including identity tokens relevant for a negative
 
 [Advance to Slide 24: Final Results]
 
-Our final claim is that decoding is not just a fluency knob.
-
-In this controlled GPT-2 study, decoding changes generated text, quality metrics, and regard gaps. However, the highlighted negative-regard gap remains positive under the full grid and both ablations.
+In this project, we found that decoding changes quality metrics and regard gaps. However, the highlighted regard gaps remain positive under the full grid and both ablations.
 
 ---
 
@@ -218,11 +208,9 @@ Both of us worked on interpretation and final materials.
 
 [Advance to Slide 26: Conclusion]
 
-To conclude: sampling improves generation quality, but it does not automatically solve measured bias.
+To conclude: sampling can improve generation quality, and we found generation bias evidence in GPT-2
 
 **Ivan**
-
-The GenAI contribution is the controlled decoding study. The ExAI contribution is the scorer audit that helps us inspect the evaluation layer.
 
 [Advance to Slide 27: References]
 
@@ -230,4 +218,4 @@ The GenAI contribution is the controlled decoding study. The ExAI contribution i
 
 [Advance to Slide 28: Questions]
 
-Thank you. We are ready for questions.
+Thank you for your time

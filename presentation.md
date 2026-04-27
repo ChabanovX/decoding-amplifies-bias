@@ -358,5 +358,3 @@ The ExAI part strengthens the defense by auditing the scorer behind those measur
 - Radford et al., GPT-2
 - Devlin et al., BERT - [arXiv](https://arxiv.org/abs/1810.04805)
 - Bach et al., Layer-wise Relevance Propagation - [PLOS ONE](https://doi.org/10.1371/journal.pone.0130140)
-- Released regard scorer - [`sasha/regardv3`](https://huggingface.co/sasha/regardv3)
-
