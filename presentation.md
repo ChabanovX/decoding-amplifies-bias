@@ -158,13 +158,6 @@ The project was built around cached, rerunnable artifacts.
 - scoring artifacts separate raw generations from aggregate reports
 - outputs may contain offensive text, so the report avoids large raw dumps
 
-Core implementation files:
-
-- [src/app/generation.py](src/app/generation.py)
-- [src/app/scoring.py](src/app/scoring.py)
-- [src/app/metrics.py](src/app/metrics.py)
-- [src/app/quality.py](src/app/quality.py)
-
 ---
 
 ## Results: Greedy Baseline
@@ -226,7 +219,7 @@ The key gap shrinks in some settings, but it stays positive.
 
 ---
 
-## Main GenAI Finding
+## Main Finding
 
 Decoding has a large effect on **generation quality**.
 
@@ -242,7 +235,7 @@ Decoding has a smaller but real effect on **measured regard bias**.
 
 ---
 
-## Week 5 Ablation: Masking
+## Masking
 
 We tested whether demographic masking with `XYZ` created the main result.
 
@@ -261,7 +254,7 @@ Across 240 compared prompt-type/group-pair rows:
 
 ---
 
-## Week 5 Ablation: Anti-Repetition
+## Anti-Repetition
 
 No-repeat 3-gram mostly improves quality, but does not change the main conclusion.
 
@@ -285,7 +278,7 @@ Distinct-2 improved in 10/10 configs; the key bias trace stayed positive in 10/1
 
 ---
 
-## Where ExAI Fits
+## Explaining the Results
 
 The LRP work is useful for the GenAI defense, but as an **evaluation audit layer**.
 
@@ -339,10 +332,10 @@ What we can defend for the GenAI course:
 
 | Team Member | Contributions |
 | --- | --- |
-| Ivan Chabanov | GPT-2 generation pipeline, prompt bank, caching/manifests, decoding grid, regard scoring, metrics, plots, final GenAI analysis |
-| Aleksandr Michailov | ExAI module, BERT regard classifier, LRP implementation, heatmap rendering, faithfulness/sensitivity validation, audit benchmark |
+| Ivan Chabanov | GPT-2 generation pipeline, prompt bank, caching/manifests, decoding grid, metrics, plots, heatmap rendering |
+| Aleksandr Michailov | ExAI module, BERT regard classifier, LRP implementation, regard scoring, faithfulness/sensitivity validation, audit benchmark |
 
-Both authors contributed to writing, interpretation, and final presentation materials.
+We both contributed to writing, interpretation, and final presentation materials.
 
 ---
 
@@ -356,7 +349,9 @@ The ExAI part strengthens the defense by auditing the scorer behind those measur
 
 ---
 
-## References
+## Thank you for your time!
+
+### References
 
 - Sheng et al., "The Woman Worked as a Babysitter" - [ACL Anthology](https://aclanthology.org/D19-1339/)
 - Holtzman et al., "The Curious Case of Neural Text Degeneration" - [arXiv](https://arxiv.org/abs/1904.09751)
@@ -365,6 +360,3 @@ The ExAI part strengthens the defense by auditing the scorer behind those measur
 - Bach et al., Layer-wise Relevance Propagation - [PLOS ONE](https://doi.org/10.1371/journal.pone.0130140)
 - Released regard scorer - [`sasha/regardv3`](https://huggingface.co/sasha/regardv3)
 
-<!-- _class: lead invert -->
-
-# Questions
