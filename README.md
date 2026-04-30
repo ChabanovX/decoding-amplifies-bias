@@ -1,5 +1,11 @@
 # Decoding Amplifies Bias
 
+## Case Study
+
+poster: poster.pdf
+jupyter: notebooks/decoding_bias_experiment.ipynb
+
+
 Repository for the proposal-locked study in [REQUIREMENTS.md](REQUIREMENTS.md), plus an optional
 classifier-replication / explanation track under `src/app/exai/`.
 
@@ -15,6 +21,8 @@ The main submission path for this project is the decoding study:
 
 The final submission artifacts are:
 
+- experiment notebook: `notebooks/decoding_bias_experiment.ipynb`
+- paired notebook source: `notebooks/decoding_bias_experiment.py`
 - report source: `docs/final/final_submission.tex`
 - report PDF: `docs/final/final_submission.pdf`
 - reproducibility instructions: this `README.md`
