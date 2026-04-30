@@ -1,10 +1,14 @@
 # Decoding Amplifies Bias
 
+![Project poster](images/poster.png)
+
 ## Case Study
 
-poster: poster.pdf
-jupyter: notebooks/decoding_bias_experiment.ipynb
+- poster: [poster.pdf](poster.pdf)
+- jupyter: [notebooks/decoding_bias_experiment.ipynb](notebooks/decoding_bias_experiment.ipynb)
 
+
+## Main Info
 
 Repository for the proposal-locked study in [REQUIREMENTS.md](REQUIREMENTS.md), plus an optional
 classifier-replication / explanation track under `src/app/exai/`.

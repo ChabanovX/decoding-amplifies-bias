@@ -74,6 +74,9 @@ display(Markdown(f"Repository root: `{ROOT}`"))
 #
 # Leave these as `False` to inspect existing result artifacts. Turn them on deliberately if you
 # want the notebook to rerun generation, scoring, metrics, or milestone ablations.
+#
+# For a complete from-scratch run, set every flag in this cell to `True` and execute the notebook
+# from top to bottom.
 
 # %%
 RUN_MILESTONE1_GREEDY_GENERATION = False
@@ -81,7 +84,10 @@ RUN_MILESTONE2_GREEDY_SCORING = False
 RUN_MILESTONE3_GENERATION_GRID = False
 RUN_MILESTONE3_SCORING_GRID = False
 RUN_MILESTONE3_METRICS = False
+RUN_MILESTONE5_UNMASKED_SCORING_GRID = False
 RUN_MILESTONE5_MASKING_SENSITIVITY = False
+RUN_MILESTONE5_ANTIREP_GENERATION_GRID = False
+RUN_MILESTONE5_ANTIREP_SCORING_GRID = False
 RUN_MILESTONE5_ANTI_REPETITION = False
 
 # %% [markdown]
@@ -148,10 +154,16 @@ display(prompt_bank.head(8))
 
 
 # %%
-def run_cli(args: list[str], *, enabled: bool, label: str) -> None:
+def run_cli(
+    args: list[str],
+    *,
+    enabled: bool,
+    label: str,
+    env_overrides: dict[str, str] | None = None,
+) -> None:
     """Run an experiment CLI step when its flag is enabled."""
     command = [sys.executable, "-m", "app.cli", *args]
-    env = {**os.environ, "PYTHONPATH": str(SRC)}
+    env = {**os.environ, "PYTHONPATH": str(SRC), **(env_overrides or {})}
     print(f"{label}:")
     if not enabled:
         print("Skipped. Set the corresponding run flag to True to execute this step.")
@@ -183,8 +195,35 @@ def run_milestone3_metric_build(enabled: bool) -> None:
     )
 
 
+def run_milestone5_unmasked_grid_scoring(enabled: bool) -> None:
+    run_cli(
+        ["score-grid"],
+        enabled=enabled,
+        label="Milestone 5 unmasked scoring for masking sensitivity",
+        env_overrides={"USE_MASKING": "false"},
+    )
+
+
 def run_milestone5_masking(enabled: bool) -> None:
     run_cli(["masking-sensitivity"], enabled=enabled, label="Milestone 5 masking sensitivity")
+
+
+def run_milestone5_antirep_grid_generation(enabled: bool) -> None:
+    run_cli(
+        ["generate-grid"],
+        enabled=enabled,
+        label="Milestone 5 anti-repetition decoding-grid generation",
+        env_overrides={"NO_REPEAT_NGRAM_SIZE": "3"},
+    )
+
+
+def run_milestone5_antirep_grid_scoring(enabled: bool) -> None:
+    run_cli(
+        ["score-grid"],
+        enabled=enabled,
+        label="Milestone 5 anti-repetition decoding-grid scoring",
+        env_overrides={"NO_REPEAT_NGRAM_SIZE": "3"},
+    )
 
 
 def run_milestone5_antirep(enabled: bool) -> None:
@@ -200,7 +239,10 @@ run_milestone2_greedy_scoring(RUN_MILESTONE2_GREEDY_SCORING)
 run_milestone3_grid_generation(RUN_MILESTONE3_GENERATION_GRID)
 run_milestone3_grid_scoring(RUN_MILESTONE3_SCORING_GRID)
 run_milestone3_metric_build(RUN_MILESTONE3_METRICS)
+run_milestone5_unmasked_grid_scoring(RUN_MILESTONE5_UNMASKED_SCORING_GRID)
 run_milestone5_masking(RUN_MILESTONE5_MASKING_SENSITIVITY)
+run_milestone5_antirep_grid_generation(RUN_MILESTONE5_ANTIREP_GENERATION_GRID)
+run_milestone5_antirep_grid_scoring(RUN_MILESTONE5_ANTIREP_SCORING_GRID)
 run_milestone5_antirep(RUN_MILESTONE5_ANTI_REPETITION)
 
 # %% [markdown]
